@@ -1,0 +1,94 @@
+version: '3.8'
+
+networks:
+  wiki-streaming-network:
+    name: wiki-streaming-network
+    driver: bridge
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOOKEEPER_CLIENT_PORT=2181
+    networks:
+      - wiki-streaming-network
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kafka-server
+    ports:
+      - "9092:9092"
+    environment:
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+    volumes:
+      - ./scripts/init-kafka.sh:/scripts/init-kafka.sh
+    healthcheck:
+        test: ["CMD", "bash", "/scripts/init-kafka.sh"]
+        interval: 5s
+        timeout: 10s
+        retries: 10
+    networks:
+      - wiki-streaming-network
+    depends_on:
+      - zookeeper
+
+
+  spark:
+    image: docker.io/bitnami/spark:3
+    container_name: spark-master-server
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - '8080:8080'
+    networks:
+      - wiki-streaming-network
+
+  spark-worker:
+    image: docker.io/bitnami/spark:3
+    container_name: spark-worker-server
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_INSTANCES = 2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_ZOS_MASTER_APP_ALWAYSSCHEDULEAPPS=true
+    networks:
+      - wiki-streaming-network
+
+
+
+  cassandra:
+    image: bitnami/cassandra:latest
+    container_name: cassandra-server
+    ports:
+      - "9042:9042"
+    volumes:
+      - ./scripts/ddl.cql:/docker-entrypoint-initdb.d/ddl.cql
+    environment:
+      - CASSANDRA_AUTHENTICATOR=AllowAllAuthenticator
+      - CASSANDRA_AUTHORIZER=AllowAllAuthorizer
+    healthcheck:
+          test: [ "CMD-SHELL", "cqlsh -e 'DESCRIBE wiki;'" ]
+          interval: 5s
+          retries: 20
+          timeout: 5s
+    networks:
+      - wiki-streaming-network
