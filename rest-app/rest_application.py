@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Path
+from fastapi import FastAPI, HTTPException, Path, Query
 from typing import List
 import cassandra_processing
 import rest_models
@@ -6,60 +6,56 @@ import logging
 from datetime import date
 
 # Initialize logging
-logging.basicConfig(level=logging.INFO, format='|%(asctime)s| - |%(name)s| - |%(levelname)s| - |%(message)s')
+logging.basicConfig(level=logging.INFO, format='|%(asctime)s| - |%(name)s| - |%(levelname)s| - |%(message)s|')
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI()
 
-# Define endpoint to get reviews by customer ID
-@app.get("/customers/{customer_id}/reviews/", response_model=List[rest_models.CustomersReviewsModel])
-async def get_reviews_by_customer_id(customer_id: str = Path(..., title="The ID of the customer")):
-    logger.info(f"Getting reviews for customer_id: {customer_id}")
-    result = cassandra_processing.find_reviews_by_customer_id(customer_id)
+@app.get("/domains/all/", response_model=rest_models.DomainModel)
+def get_all_domains():
+    logger.info(f"Getting all domains")
+    result = cassandra_processing.find_all_domains()
     if not result or result is None:
-        raise HTTPException(status_code=404, detail=f"Reviews not found for {customer_id}")
+        raise HTTPException(status_code=404, detail="Domains not found")
     return result
 
-
-@app.get("/products/{product_id}/reviews/", response_model=List[rest_models.ProductsReviewsModel])
-async def get_reviews_by_product_id(product_id: str = Path(..., title="The ID of the product"), star_rating: int|None = None):
-    logger.info(f"Getting reviews for product_id: {product_id}, with star_rating: {star_rating}")
-
-    if star_rating is not None and (star_rating < 1 or star_rating > 5):
-        raise HTTPException(status_code=400, detail=f"Invalid star_rating: {star_rating}. Must be int between 1 and 5")
-
-    result = cassandra_processing.find_reviews_by_product_id(product_id, star_rating=star_rating)
+@app.get("/users/{user_id}/pages/", response_model=List[rest_models.UserPageModel])
+def get_user_pages(user_id: int = Path(..., title="The ID of the user")):
+    logger.info(f"Getting pages for user_id: {user_id}")
+    result = cassandra_processing.find_user_pages(user_id)
     if not result or result is None:
-        datail_str = f"Reviews not found for {product_id}"
-        if star_rating is not None:
-            datail_str += f" with star_rating: {star_rating}"
-        raise HTTPException(status_code=404, detail=datail_str)
+        raise HTTPException(status_code=404, detail=f"Pages not found for {user_id}")
     return result
 
-@app.get("/products/most-popular/", response_model=List[rest_models.MostReviewedProductsModel])
-async def get_most_reviewed_products(from_date: date, to_date: date, limit: int|None = 10):
-
-    logger.info(f"Getting most reviewed products", "from_date: ", from_date, "to_date: ", to_date, "limit: ", limit)
-    
-    if from_date > to_date:
-        raise HTTPException(status_code=400, detail=f"Starting from_date must be less than the Final to_date")
-    
-    result = cassandra_processing.find_most_reviewed_products(from_date, to_date, limit)
+@app.get("/pages/{page_id}/", response_model=rest_models.PageModel)
+def get_page(page_id: int = Path(..., title="The ID of the page")):
+    logger.info(f"Getting page for page_id: {page_id}")
+    result = cassandra_processing.find_page_info(page_id)
+    if not result or result is None:
+        raise HTTPException(status_code=404, detail=f"Page not found for {page_id}")
     return result
 
-@app.get("/customers/most-productive/", response_model=List[rest_models.MostProductiveCustomersModel])
-def get_most_productive_customers(from_date: date, to_date: date, limit: int = 10, verified_only: bool|None = False,
-                                  review_type: str|None = None):
-    if from_date > to_date:
+@app.get("/domains/{domain}/total/", response_model=rest_models.DomainPageModel)
+def get_domain_pages(domain: str = Path(..., title="The domain")):
+    logger.info(f"Getting pages for domain: {domain}")
+    result = cassandra_processing.find_domain_pages(domain)
+    if not result or result is None:
+        raise HTTPException(status_code=404, detail=f"Pages not found for domain: {domain}")
+    return result
+
+@app.get("/pages-by-users/", response_model=List[rest_models.PagesByUsersModel])
+def get_pages_by_users(from_dt: date = Query(..., title="The starting date"), 
+                       to_dt: date = Query(..., title="The final date")):
+    if from_dt > to_dt:
         raise HTTPException(status_code=400, detail=f"Starting from_date must be less than the Final to_date")
-    
-    logger.info(f"Getting most productive customers", "from_date: ", from_date, "to_date: ", to_date, "limit: ", limit, "verified_only: ", verified_only, "review_type: ", review_type)
-    result = cassandra_processing.find_most_productive_customers(from_date, to_date, limit, verified_only, review_type)
+    logger.info(f"Getting pages by users", "from_date: ", from_dt, "to_date: ", to_dt)
+    result = cassandra_processing.find_pages_by_users_in_timerange(from_dt, to_dt)
+    if not result or result is None:
+        raise HTTPException(status_code=404, detail="Pages not found")
     return result
 
 # Define root endpoint
 @app.get("/")
 async def read_root():
-    return {"message": "Welcome to the reviews API!"}
-
+    return {"message": "Welcome to the Wikipedia Created Pages API!"}

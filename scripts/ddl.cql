@@ -1,7 +1,7 @@
 CREATE KEYSPACE IF NOT EXISTS wiki WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
 
 
-CREATE TABLE IF NOT EXISTS wiki.domain_articles (
+CREATE TABLE IF NOT EXISTS wiki.domain_pages (
     domain TEXT,
     page_id INT,
     PRIMARY KEY (domain, page_id),

@@ -22,7 +22,7 @@
 ## Categorie B (ad-hoc queries)
 1. `/domains/all`
 ```ddl
-CREATE TABLE wiki.domain_articles (
+CREATE TABLE wiki.domain_pages (
     domain TEXT,
     page_id INT,
     PRIMARY KEY (domain, page_id),
@@ -40,11 +40,11 @@ CREATE TABLE wiki.user_pages (
 );
 ```
 
-3. `/domains/{domain_id}/articles`
+3. `/domains/{domain_id}/pages`
 
-- use domain_articles
+- use domain_pages
 
-4. /pages/{page_id}
+4. `/pages/{page_id}`
 
 ```ddl
 CREATE TABLE wiki.pages (
@@ -55,7 +55,7 @@ CREATE TABLE wiki.pages (
 );
 ```
 
-5. `/pages/all/?from={from}&to={to}`
+5. `/pages-by_users/?from={from}&to={to}`
     
 ```ddl
 CREATE TABLE wiki.pages_by_date (

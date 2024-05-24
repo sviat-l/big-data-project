@@ -1,29 +1,27 @@
 from pydantic import BaseModel, Field
-from datetime import date
-
-    
-class CustomersReviewsModel(BaseModel):
-    customer_id: str = Field(..., alias="customer_id", primary_key=True)
-    review_id: str = Field(..., alias="review_id", primary_key=True)
-    review_headline: str = Field(None, alias="review_headline")
-    review_date: date = Field(None, alias="review_date")
-    star_rating: int = Field(..., alias="star_rating")
+from typing import List
 
 
-class ProductsReviewsModel(BaseModel):
-    product_id: str = Field(..., alias="product_id", partition_key=True)
-    star_rating: int = Field(..., alias="star_rating", partition_key=True)
-    review_id: str = Field(..., alias="review_id", primary_key=True)
-    review_headline: str = Field(None, alias="review_headline")
-    verified_purchase: bool = Field(None, alias="verified_purchase")
+class DomainModel(BaseModel):
+    domains: List[str] = Field(..., title="The list of domains")
 
 
-class MostReviewedProductsModel(BaseModel):
-    product_id: str = Field(..., alias="product_id")
-    product_title: str = Field(None, alias="product_title")
-    reviews_number: int = Field(None, alias="reviews_number")
+class UserPageModel(BaseModel):
+    page_id: int = Field(..., title="The ID of the page")
+    page_title: str = Field(..., title="The title of the page")
 
 
-class MostProductiveCustomersModel(BaseModel):
-    customer_id: str = Field(..., alias="customer_id")
-    reviews_number: int = Field(None, alias="reviews_number")
+class PageModel(BaseModel):
+    page_id: int = Field(..., title="The ID of the page")
+    page_title: str = Field(..., title="The title of the page")
+    domain: str = Field(..., title="The domain")
+
+
+class DomainPageModel(BaseModel):
+    number_of_pages: int = Field(..., title="The number of pages created in the domain")
+
+
+class PagesByUsersModel(BaseModel):
+    user_id: int | None = Field(..., title="The ID of the user")
+    user_name: str = Field(..., title="The name of the user")
+    number_of_pages: int = Field(..., title="The number of pages created by the user")
