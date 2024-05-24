@@ -35,13 +35,6 @@ def write_kafka_stream(df: DataFrame, bootstrap_servers: str, topic: str) -> Str
             .option("checkpointLocation", "/tmp/checkpoint") \
             .start()
             
-def streaming_console_output(df: DataFrame) -> StreamingQuery:
-    """Output the DataFrame to the console."""
-    return df.writeStream \
-            .format("console") \
-            .outputMode("append") \
-            .start()
-
 def process_data(input_df: DataFrame) -> DataFrame:
     """Process the input data and return the filtered data."""
     # Selecting the data from the input stream message
@@ -58,34 +51,20 @@ def process_data(input_df: DataFrame) -> DataFrame:
                 "page_id:integer,"
                 "page_title:string>') AS data")\
             .select("data.*")
-            
     print("Schema of the parsed data:")
     parsed_df.printSchema()
-    # Selecting the required columns, with naming convention
-    selected_df = parsed_df.select(
-            F.col("meta.domain").alias("domain"),
-            F.col("meta.request_id").alias("request_id"),
-            F.col("performer.user_id").alias("user_id"),
-            F.col("performer.user_text").alias("user_text"),
-            F.col("performer.user_is_bot").alias("user_is_bot"),
-            F.col("dt").alias("created_at"),
-            F.col("page_title"),
-            F.col("page_id")
-            )
-    print("Schema of the selected data:")
-    selected_df.printSchema()
     # Formatting the output string to be written to Kafka
-    formatted_df = selected_df \
+    formatted_df = parsed_df \
             .withColumn("value", F.to_json(
                 F.struct(
-                    F.col("domain"),
-                    F.col("request_id"),
-                    F.col("user_id"),
-                    F.col("user_text"),
-                    F.col("user_is_bot"),
-                    F.col("created_at"),
-                    F.col("page_id"),
+                    F.col("meta.domain").alias("domain"),
+                    F.col("meta.request_id").alias("request_id"),
+                    F.col("performer.user_id").alias("user_id"),
+                    F.col("performer.user_text").alias("user_text"),
+                    F.col("performer.user_is_bot").alias("user_is_bot"),
+                    F.col("dt").alias("created_at"),
                     F.col("page_title"),
+                    F.col("page_id"),
                     )
                 ))\
             .selectExpr("CAST(value AS STRING)")

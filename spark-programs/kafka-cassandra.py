@@ -2,6 +2,24 @@ import argparse
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.streaming import StreamingQuery
 
+TABLES_CONFIG ={
+  "domain_articles": {
+    "columns": ["domain", "page_id"],
+  },
+  "user_pages": {
+    "columns": ["user_id", "page_id", "page_title"],
+  },
+  "pages": {
+    "columns": ["page_id", "page_title", "domain"],
+  },
+  "pages_by_date": {
+    "columns": ["created_at", "page_id", "page_title", "user_id", "user_text", "domain"],
+  },
+  "domain_stats": {
+    "columns": ["domain", "page_id", "created_at", "user_is_bot"],
+  }
+}
+
 def create_spark_session(app_name: str, master: str, log_level: str, 
                          cassandra_host: str="cassandra", cassandra_port: str="9042",
                          cores_max:int=1, executor_mem:str='1g') -> SparkSession:
@@ -30,16 +48,10 @@ def read_kafka_stream(spark: SparkSession, bootstrap_servers: str, topic: str) -
             .option("subscribe", topic) \
             .load()
             
-def streaming_console_output(df: DataFrame) -> StreamingQuery:
-    """Output the DataFrame to the console."""
-    return df.writeStream \
-            .outputMode("append") \
-            .format("console") \
-            .start()
-
 def write_to_cassandra(df: DataFrame, keyspace: str, table: str) -> StreamingQuery:
     """Write messages to Cassandra table as a stream."""
-    df = df.selectExpr("request_id", "user_id", "domain", "user_text", "created_at", "page_title")
+    df = df.select("request_id", "user_id", "domain", 
+                       "created_at", "page_title")
     return df.writeStream \
             .foreachBatch(lambda batch_df, batch_id: 
                 batch_df.write \
@@ -55,25 +67,20 @@ def save_to_cassandra_table(df: DataFrame, keyspace: str, table: str):
         .options(table=table,keyspace=keyspace
         ).mode("append").save()
             
-def write_all_to_cassandra(df: DataFrame, keyspace: str):
+def write_all_to_cassandra(df: DataFrame, df_id, keyspace: str='wiki'):
     """ Write data to all tables in the keyspace."""
-    domain_articles_df = df.select("domain", "page_id")
-    save_to_cassandra_table(domain_articles_df, keyspace, "domain_articles")
-    user_pages_df = df.select("user_id", "page_id", "page_title")
-    save_to_cassandra_table(user_pages_df, keyspace, "user_pages")
-    pages_df = df.select("page_id", "page_title", "domain")
-    save_to_cassandra_table(pages_df, keyspace, "pages")
-    pages_by_date_df = df.select("created_at", "page_id", "page_title", "user_id", "user_text", "domain")
-    save_to_cassandra_table(pages_by_date_df, keyspace, "pages_by_date")
-    domain_stats_df = df.select("domain", "page_id", "created_at", "user_is_bot")
-    save_to_cassandra_table(domain_stats_df, keyspace, "domain_stats")
+    for table, config in TABLES_CONFIG.items():
+        table_df = df.select(config["columns"])
+        table_df = table_df.filter(table_df.columns[0] + " IS NOT NULL")
+        save_to_cassandra_table(table_df, keyspace, table)
+
     
-def start_cassandra_write(df: DataFrame, keyspace: str, table: str) -> StreamingQuery:
+def start_cassandra_write(df: DataFrame) -> StreamingQuery:
     return df.writeStream \
         .foreachBatch(write_all_to_cassandra) \
         .start()
 
-def process_data(input_df: DataFrame) -> DataFrame:
+def preprocess_data(input_df: DataFrame) -> DataFrame:
     """Process the input data and return in the format to write to Cassandra."""
     data_df = input_df.selectExpr("CAST(value AS STRING)")
     parsed_df = data_df\
@@ -104,18 +111,16 @@ def main(args: argparse.Namespace):
     args.cassandra_host: Cassandra host
     args.cassandra_port: Cassandra port
     args.keyspace: Cassandra keyspace write to
-    args.table: Cassandra table name
     """
     spark_session = create_spark_session(args.app_name, args.master, args.log_level, 
                     args.cassandra_host, args.cassandra_port,args.cores_max, args.executor_mem)
     print("Reading from Kafka topic: ", args.read_topic)
     input_df = read_kafka_stream(spark_session, args.bootstrap_servers, args.read_topic)
-    processed_df = process_data(input_df)
-    print("Writing to Cassandra table:", f"{args.keyspace}.{args.table}")
+    processed_df = preprocess_data(input_df)
+    print("Writing to Cassandra keyspace", f"{args.keyspace}")
     print("Output Schema:")
     processed_df.printSchema()
-    write_query = write_to_cassandra(processed_df, args.keyspace, args.table)
-    # write_query = write_all_to_cassandra(processed_df, args.keyspace)
+    write_query = start_cassandra_write(processed_df)
     write_query.awaitTermination()
     
 if __name__ == "__main__":
@@ -136,6 +141,5 @@ if __name__ == "__main__":
     argparser.add_argument("--cassandra_host", type=str, default="cassandra", help="Cassandra host")
     argparser.add_argument("--cassandra_port", type=str, default="9042", help="Cassandra port")
     argparser.add_argument("--keyspace", type=str, default="wiki", help="Cassandra keyspace")
-    argparser.add_argument("--table", type=str, default="created_pages", help="Cassandra table")
     args = argparser.parse_args()
     main(args)
