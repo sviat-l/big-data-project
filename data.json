@@ -1,0 +1,67 @@
+data: {
+    "$schema": "/mediawiki/revision/create/2.0.0",
+    "meta": {
+        "uri": "https://zh.wikipedia.org/wiki/Template_talk:Taxonomy/Psittaculidae",
+        "request_id": "e3cdbdcb-e56f-4903-adf5-f4b67f291727",
+        "id": "00121f00-1443-44fa-ae26-ce85902d75ed",
+        "dt": "2024-05-24T11:43:14Z",
+        "domain": "zh.wikipedia.org",
+        "stream": "mediawiki.page-create",
+        "topic": "eqiad.mediawiki.page-create",
+        "partition": 0,
+        "offset": 288721331
+    },
+    "database": "zhwiki",
+    "page_id": 8751616,
+    "page_title": "Template_talk:Taxonomy/Psittaculidae",
+    "page_namespace": 11,
+    "rev_id": 82763559,
+    "rev_timestamp": "2024-05-24T11:43:12Z",
+    "rev_sha1": "mhxhxr6u7v6zrx0b4obaujaea1gf46e",
+    "rev_minor_edit": false,
+    "rev_len": 84,
+    "rev_content_model": "wikitext",
+    "rev_content_format": "text/x-wiki",
+    "performer": {
+        "user_text": "Interaccoonale",
+        "user_groups": [
+            "extendedconfirmed",
+            "ipblock-exempt",
+            "*",
+            "user",
+            "autoconfirmed"
+        ],
+        "user_is_bot": false,
+        "user_id": 1256681,
+        "user_registration_dt": "2012-08-01T12:31:24Z",
+        "user_edit_count": 48403
+    },
+    "page_is_redirect": false,
+    "comment": "添加专题模板 (via JWB)",
+    "parsedcomment": "添加专题模板 (via JWB)",
+    "dt": "2024-05-24T11:43:12Z",
+    "rev_slots": {
+        "main": {
+            "rev_slot_content_model": "wikitext",
+            "rev_slot_sha1": "mhxhxr6u7v6zrx0b4obaujaea1gf46e",
+            "rev_slot_size": 84,
+            "rev_slot_origin_rev_id": 82763559
+        }
+    }
+}
+
+
+data: {
+    "meta": {
+        "id": "00121f00-1443-44fa-ae26-ce85902d75ed",
+        "domain": "zh.wikipedia.org",
+    },
+    "performer": {
+        "user_text": "Interaccoonale",
+        "user_is_bot": false,
+        "user_id": 1256681,
+    },
+    "page_id": 8751616,
+    "page_title": "Template_talk:Taxonomy/Psittaculidae",
+    "dt": "2024-05-24T11:43:12Z",
+}

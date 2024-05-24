@@ -39,6 +39,7 @@ def streaming_console_output(df: DataFrame) -> StreamingQuery:
 
 def write_to_cassandra(df: DataFrame, keyspace: str, table: str) -> StreamingQuery:
     """Write messages to Cassandra table as a stream."""
+    df = df.selectExpr("request_id", "user_id", "domain", "user_text", "created_at", "page_title")
     return df.writeStream \
             .foreachBatch(lambda batch_df, batch_id: 
                 batch_df.write \
@@ -46,6 +47,31 @@ def write_to_cassandra(df: DataFrame, keyspace: str, table: str) -> StreamingQue
                     .options(table=table,keyspace=keyspace
                     ).mode("append").save()
             ).start()
+            
+def save_to_cassandra_table(df: DataFrame, keyspace: str, table: str):
+    """ Write data to a Cassandra table."""
+    df.write \
+        .format("org.apache.spark.sql.cassandra") \
+        .options(table=table,keyspace=keyspace
+        ).mode("append").save()
+            
+def write_all_to_cassandra(df: DataFrame, keyspace: str):
+    """ Write data to all tables in the keyspace."""
+    domain_articles_df = df.select("domain", "page_id")
+    save_to_cassandra_table(domain_articles_df, keyspace, "domain_articles")
+    user_pages_df = df.select("user_id", "page_id", "page_title")
+    save_to_cassandra_table(user_pages_df, keyspace, "user_pages")
+    pages_df = df.select("page_id", "page_title", "domain")
+    save_to_cassandra_table(pages_df, keyspace, "pages")
+    pages_by_date_df = df.select("created_at", "page_id", "page_title", "user_id", "user_text", "domain")
+    save_to_cassandra_table(pages_by_date_df, keyspace, "pages_by_date")
+    domain_stats_df = df.select("domain", "page_id", "created_at", "user_is_bot")
+    save_to_cassandra_table(domain_stats_df, keyspace, "domain_stats")
+    
+def start_cassandra_write(df: DataFrame, keyspace: str, table: str) -> StreamingQuery:
+    return df.writeStream \
+        .foreachBatch(write_all_to_cassandra) \
+        .start()
 
 def process_data(input_df: DataFrame) -> DataFrame:
     """Process the input data and return in the format to write to Cassandra."""
@@ -55,7 +81,10 @@ def process_data(input_df: DataFrame) -> DataFrame:
                 "domain:string, "+ 
                 "request_id:string, "+
                 "user_id:integer, "+
+                "user_text:string, "+
+                "user_is_bot:boolean, "+
                 "created_at:string, "+
+                "page_id:integer,"
                 "page_title:string>') AS data")\
             .select("data.*")
     return parsed_df
@@ -82,10 +111,11 @@ def main(args: argparse.Namespace):
     print("Reading from Kafka topic: ", args.read_topic)
     input_df = read_kafka_stream(spark_session, args.bootstrap_servers, args.read_topic)
     processed_df = process_data(input_df)
-    print("Writing to Cassandra keyspace: ", args.keyspace, " table: ", args.table)
+    print("Writing to Cassandra table:", f"{args.keyspace}.{args.table}")
     print("Output Schema:")
     processed_df.printSchema()
     write_query = write_to_cassandra(processed_df, args.keyspace, args.table)
+    # write_query = write_all_to_cassandra(processed_df, args.keyspace)
     write_query.awaitTermination()
     
 if __name__ == "__main__":

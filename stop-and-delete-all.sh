@@ -12,7 +12,7 @@ docker stop spark-worker-server && docker rm spark-worker-server
 docker stop cassandra-server && docker rm cassandra-server
 
 # Endpoint app
-docker stop producer-app-server && docker rm producer-app-server
+docker stop endpoint-reader-app-server && docker rm endpoint-reader-app-server
 
 # Kafka - Spark - Kafka
 docker stop app-spark-kafka-server && docker rm app-spark-kafka-server

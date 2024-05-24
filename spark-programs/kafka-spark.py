@@ -53,30 +53,44 @@ def process_data(input_df: DataFrame) -> DataFrame:
     parsed_df = data_df\
             .selectExpr("from_json(data, 'struct<"+
                 "meta:struct<domain:string, request_id:string>, "+
-                "performer:struct<user_is_bot:boolean, user_id:integer>, "+
+                "performer:struct<user_text:string, user_is_bot:boolean, user_id:integer>, "+
                 "dt:string, "+
+                "page_id:integer,"
                 "page_title:string>') AS data")\
             .select("data.*")
-    # Filtering the data based on the conditions
-    filtered_df = parsed_df.filter(
-        F.expr("meta.domain IN ('en.wikipedia.org', 'www.wikidata.org', 'commons.wikimedia.org')") &
-        (~F.expr("performer.user_is_bot"))
-    )
+            
+    print("Schema of the parsed data:")
+    parsed_df.printSchema()
     # Selecting the required columns, with naming convention
-    selected_df = filtered_df.select(
+    selected_df = parsed_df.select(
             F.col("meta.domain").alias("domain"),
             F.col("meta.request_id").alias("request_id"),
             F.col("performer.user_id").alias("user_id"),
+            F.col("performer.user_text").alias("user_text"),
+            F.col("performer.user_is_bot").alias("user_is_bot"),
             F.col("dt").alias("created_at"),
-            F.col("page_title"))
+            F.col("page_title"),
+            F.col("page_id")
+            )
     print("Schema of the selected data:")
     selected_df.printSchema()
     # Formatting the output string to be written to Kafka
     formatted_df = selected_df \
             .withColumn("value", F.to_json(
-                F.struct("domain", "request_id", "user_id", "created_at", "page_title"))
-                        )\
+                F.struct(
+                    F.col("domain"),
+                    F.col("request_id"),
+                    F.col("user_id"),
+                    F.col("user_text"),
+                    F.col("user_is_bot"),
+                    F.col("created_at"),
+                    F.col("page_id"),
+                    F.col("page_title"),
+                    )
+                ))\
             .selectExpr("CAST(value AS STRING)")
+    print("Schema of the formatted data:")
+    formatted_df.printSchema()
     return formatted_df
 
 

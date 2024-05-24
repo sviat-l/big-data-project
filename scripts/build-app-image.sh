@@ -1,5 +1,5 @@
 
-app_name=producer-app
+app_name=endpoint-reader-app
 app_dir=./$app_name
 
 docker rmi $app_name --force

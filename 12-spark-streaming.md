@@ -62,9 +62,9 @@ sh scripts/spark-cassandra-run.sh bash
 - - - 
 ### 2. Endpoint App
 
-[`producer-app`](./producer-app) - folder with the producer app for `input`  Kafka topic, Dockerfile and requirements
+[`endpoint-reader-app`](./endpoint-reader-app) - folder with the producer app for `input`  Kafka topic, Dockerfile and requirements
 
-- [`main.py`](./producer-app/main.py) - python script to read data from the endpoint and write it to the Kafka topic
+- [`main.py`](./endpoint-reader-app/main.py) - python script to read data from the endpoint and write it to the Kafka topic
 
 ```bash
 root@aecd5a3eb6f2:/app# python main.py --help
@@ -252,7 +252,7 @@ sh stop-and-delete-all.sh
 ![all-containers](./results/img/2-containers.png)
 
 3. Kafka producer app from the endpoint:
-![producer-app](./results/img/3-endpoint-producer-app.png)
+![endpoint-reader-app](./results/img/3-endpoint-endpoint-reader-app.png)
 
 - and we can see the data in the `input` Kafka topic:
 ![kafka-input](./results/img/3-kafka-clc-input.png)
