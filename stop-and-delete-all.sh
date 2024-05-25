@@ -20,5 +20,8 @@ docker stop app-spark-kafka-server && docker rm app-spark-kafka-server
 # Kafka - Spark - Cassandra App
 docker stop app-spark-cassandra-server && docker rm app-spark-cassandra-server
 
+# MongoDB
+docker stop mongodb-server && docker rm mongodb-server
+
 # Network
 docker network rm wiki-streaming-network

@@ -35,3 +35,27 @@ def find_pages_by_users_in_timerange(from_dt, to_dt):
     GROUP BY created_at ALLOW FILTERING;"
     result = connection.session.execute(querry).all()
     return [{"user_id": row.user_id, "user_name": row.user_text, "number_of_pages": row.count} for row in result]
+
+
+def fetch_domain_page_counts():
+    query = "SELECT domain, COUNT(*) AS count FROM {keyspace}.pages GROUP BY domain"
+    rows = connection.session.execute(query)
+    return {row.domain: row.count for row in rows}
+
+
+def fetch_bot_creation_stats():
+    query = "SELECT domain, COUNT(*) AS count FROM {keyspace}.domain_stats WHERE user_is_bot = True ALLOW FILTERING"
+    rows = connection.session.execute(query)
+    return {row.domain: row.count for row in rows}
+
+
+def fetch_top_users():
+    query = """
+    SELECT user_id, COUNT(*) AS count, COLLECT_SET(page_title) AS page_titles
+    FROM {keyspace}.user_pages
+    GROUP BY user_id
+    ORDER BY count DESC
+    LIMIT 20;
+    """
+    rows = connection.session.execute(query)
+    return [{"user_id": row.user_id, "number_of_pages": row.count, "page_titles": list(row.page_titles)} for row in rows]

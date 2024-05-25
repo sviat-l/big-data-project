@@ -92,3 +92,16 @@ services:
           timeout: 5s
     networks:
       - wiki-streaming-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb-server
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - wiki-streaming-network
+
+volumes:
+  mongodb-data:

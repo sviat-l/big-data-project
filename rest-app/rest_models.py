@@ -25,3 +25,33 @@ class PagesByUsersModel(BaseModel):
     user_id: int | None = Field(..., title="The ID of the user")
     user_name: str = Field(..., title="The name of the user")
     number_of_pages: int = Field(..., title="The number of pages created by the user")
+
+
+class Statistic(BaseModel):
+    domain: str
+    count: int
+
+class HourlyDomainStatsModel(BaseModel):
+    time_start: str
+    time_end: str
+    statistics: List[Statistic]
+
+class BotCreationStat(BaseModel):
+    domain: str
+    created_by_bots: int
+
+class BotCreationStatsModel(BaseModel):
+    time_start: str
+    time_end: str
+    statistics: List[BotCreationStat]
+
+class TopUser(BaseModel):
+    user_id: int
+    user_name: str
+    page_titles: List[str]
+    total_pages: int
+
+class TopUsersModel(BaseModel):
+    time_start: str
+    time_end: str
+    users: List[TopUser]

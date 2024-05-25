@@ -4,6 +4,7 @@ import cassandra_processing
 import rest_models
 import logging
 from datetime import date
+from mongo_processing import MongoDBClient
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='|%(asctime)s| - |%(name)s| - |%(levelname)s| - |%(message)s|')
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI()
+mongo_client = MongoDBClient()
 
 @app.get("/domains/all/", response_model=rest_models.DomainModel)
 def get_all_domains():
@@ -54,6 +56,32 @@ def get_pages_by_users(from_dt: date = Query(..., title="The starting date"),
     if not result or result is None:
         raise HTTPException(status_code=404, detail="Pages not found")
     return result
+
+
+# Category A (precomputed reports)
+@app.get("/domains/stats/", response_model=List[rest_models.HourlyDomainStatsModel])
+def get_domain_stats():
+    result = mongo_client.get_domain_stats()
+    if not result:
+        raise HTTPException(status_code=404, detail="No hourly stats found")
+    return result
+
+
+@app.get("/domains/stats/by_bots/", response_model=rest_models.BotCreationStatsModel)
+def get_bot_creation_stats():
+    result = mongo_client.get_bot_creation_stats()
+    if not result:
+        raise HTTPException(status_code=404, detail="No bot creation stats found")
+    return result
+
+
+@app.get("/users/most-productive/", response_model=List[rest_models.TopUsersModel])
+def get_top_users():
+    result = mongo_client.get_most_productive()
+    if not result:
+        raise HTTPException(status_code=404, detail="No user data found")
+    return result
+
 
 # Define root endpoint
 @app.get("/")

@@ -1,3 +1,4 @@
 uvicorn
 fastapi
 cassandra-driver
+pymongo
