@@ -27,8 +27,7 @@ CREATE TABLE IF NOT EXISTS wiki.pages_by_date (
     page_title TEXT,
     user_id INT,
     user_text TEXT,
-    domain TEXT,
-    PRIMARY KEY (created_at, page_id),
+    PRIMARY KEY (user_id, created_at, page_id),
 );
 
 
@@ -37,5 +36,5 @@ CREATE TABLE IF NOT EXISTS wiki.domain_stats (
     domain TEXT,
     page_id INT,
     user_is_bot BOOLEAN,
-    PRIMARY KEY ((created_at, user_is_bot), domain)
+    PRIMARY KEY (domain, created_at, user_is_bot, page_id)
 );

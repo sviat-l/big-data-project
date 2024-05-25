@@ -88,6 +88,7 @@ def get_bot_creation_stats():
 @app.get("/users/most-productive/", response_model=List[rest_models.TopUsersModel])
 def get_top_users():
     result = mongo_client.get_most_productive()
+    print(result)
     if not result:
         raise HTTPException(status_code=404, detail="No user data found")
     return result

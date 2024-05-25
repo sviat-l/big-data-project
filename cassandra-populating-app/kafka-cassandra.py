@@ -14,7 +14,7 @@ CASSANDRA_TABLES ={
     "columns": ["page_id", "page_title", "domain"],
   },
   "pages_by_date": {
-    "columns": ["created_at", "page_id", "page_title", "user_id", "user_text", "domain"],
+    "columns": ["created_at", "page_id", "page_title", "user_id", "user_text"],
   },
   "domain_stats": {
     "columns": ["domain", "page_id", "created_at", "user_is_bot"],
@@ -94,6 +94,7 @@ def preprocess_data(input_df: DataFrame) -> DataFrame:
         F.col("page_title"),
         F.col("page_id"),
     )
+    parsed_df = parsed_df.filter(F.col("user_id").isNotNull)
     return parsed_df
 
 

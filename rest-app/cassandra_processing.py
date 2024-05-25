@@ -1,6 +1,8 @@
 import cassandra_client
 import logging
 import os
+from datetime import datetime, timedelta
+from collections import Counter
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='|%(asctime)s| - |%(name)s| - |%(levelname)s| - |%(message)s|')
@@ -52,16 +54,19 @@ class AdHocCassandraService:
         return [{"user_id": row.user_id, "user_name": row.user_text, "number_of_pages": row.count} for row in results]
 
     def fetch_domain_page_counts(self):
+        return
         current_time = datetime.utcnow()
         from_time = current_time - timedelta(hours=7)
         to_time = current_time - timedelta(hours=1)
-        query = """
-        SELECT domain, created_at, COUNT(*) AS count
-        FROM {keyspace}.pages_by_date
-        WHERE created_at >= %s AND created_at < %s
-        GROUP BY domain, created_at;
+        query = f"""
+        SELECT domain, created_at, COUNT(*) AS count \
+        FROM {self.keyspace}.domain_stats \
+        WHERE created_at >= '{from_time.strftime("%Y-%m-%dT%H:00")}' AND created_at < '{to_time.strftime("%Y-%m-%dT%H:00")}' \
+        GROUP BY domain ALLOW FILTERING;
         """
-        rows = self.cassandra.execute(query, [from_time.strftime("%Y-%m-%dT%H:00"), to_time.strftime("%Y-%m-%dT%H:00")])
+        print("#@$", query)
+        rows = self.cassandra.execute(query)
+        print("124", rows)
         data = {}
     
         for row in rows:
@@ -84,13 +89,15 @@ class AdHocCassandraService:
         current_time = datetime.utcnow()
         from_time = current_time - timedelta(hours=7)
         to_time = current_time - timedelta(hours=1)
-        query = """
-        SELECT domain, COUNT(*) AS count
-        FROM {keyspace}.domain_stats
-        WHERE created_at >= %s AND created_at < %s AND user_is_bot = True
-        GROUP BY domain;
+        query = f"""
+        SELECT domain, COUNT(*) AS count \
+        FROM {self.keyspace}.domain_stats \
+        WHERE created_at >= '{2010}' AND created_at < '{2020}' AND user_is_bot = True \
+        GROUP BY domain; \
         """
-        rows = self.cassandra.execute(query, [from_time.strftime("%Y-%m-%dT%H:00"), to_time.strftime("%Y-%m-%dT%H:00")])
+        print(query)
+        # rows = self.cassandra.execute(query, [from_time.strftime("%Y-%m-%dT%H:00"), to_time.strftime("%Y-%m-%dT%H:00")])
+        rows = self.cassandra.execute(query)
         return {
             "time_start": from_time,
             "time_end": to_time,
@@ -100,26 +107,28 @@ class AdHocCassandraService:
     def fetch_top_users(self):
         current_time = datetime.utcnow()
         from_time = current_time - timedelta(hours=7)
-        to_time = current_time - timedelta(hours=1)
-        query = """
-        SELECT user_id, user_text, created_at, COUNT(*) AS count, COLLECT_SET(page_title) AS page_titles
-        FROM {keyspace}.pages_by_date
-        WHERE created_at >= %s AND created_at < %s
-        GROUP BY user_id
-        ORDER BY count DESC
-        LIMIT 20;
+        to_time = current_time + timedelta(hours=1) # change to minus
+        query = f"""
+        SELECT * FROM {self.keyspace}.pages_by_date
+        WHERE created_at >= '{from_time.strftime("%Y-%m-%dT%H:00")}' AND created_at < '{to_time.strftime("%Y-%m-%dT%H:00")}'
+        GROUP BY user_id ALLOW FILTERING ;
         """
-        rows = self.cassandra.execute(query, [from_time.strftime("%Y-%m-%dT%H:00"), to_time.strftime("%Y-%m-%dT%H:00")])
-        return {
-            "time_start": from_time,
-            "time_end": to_time,
-            "statistics":
-            [{
-                "user_name": row.user_text,
-                "user_id": row.user_id,
-                "start_time": from_time.strftime("%Y-%m-%d %H:00"),
-                "end_time": to_time.strftime("%Y-%m-%d %H:00"),
-                "page_titles": list(row.page_titles),
-                "number_of_pages": row.count
-            } for row in rows]
+        print(query)
+        rows = self.cassandra.execute(query).all()
+        print(rows)
+        users = {}
+        for row in rows:
+            user = row.user_id
+            if user not in users:
+                users[user] = {"total_pages":0, "page_titles":[], "user_name":row.user_text, "user_id":row.user_id}
+            page = row.page_title
+            users[user]["total_pages"] += 1
+            users[user]["page_titles"].append(page)
+            
+        top_20_users = sorted(list(users.values()), key=lambda x: x['total_pages'])[:20]
+        to_Write = {
+            "time_start": from_time.strftime("%Y-%m-%dT%H:00"),
+            "time_end": to_time.strftime("%Y-%m-%dT%H:00"),
+            "users": top_20_users
         }
+        return to_Write

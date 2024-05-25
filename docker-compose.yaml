@@ -146,6 +146,8 @@ services:
       - CASSANDRA_KEYSPACE=wiki
       - APP_PORT=4200
       - APP_HOST=0.0.0.0
+    volumes:
+      - ./rest-app:/app
     networks:
       - wiki-streaming-network
     depends_on:

@@ -40,6 +40,7 @@ class MongoDBClient:
 
     def insert_most_productive(self, top_users):
         try:
+            self.db.most_productive.delete_many({})
             self.db.most_productive.insert_one(top_users)
             logger.info("Most productive users stats inserted successfully.")
         except Exception as e:
@@ -63,7 +64,7 @@ class MongoDBClient:
 
     def get_most_productive(self) -> List[Dict]:
         try:
-            data = list(self.db.top_users.find())
+            data = list(self.db.most_productive.find())
             return data
         except Exception as e:
             logging.error(f"Failed to fetch top users: {str(e)}")
