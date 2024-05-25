@@ -18,6 +18,7 @@ class PageModel(BaseModel):
 
 
 class DomainPageModel(BaseModel):
+    domain: str = Field(..., title="The domain")
     number_of_pages: int = Field(..., title="The number of pages created in the domain")
 
 

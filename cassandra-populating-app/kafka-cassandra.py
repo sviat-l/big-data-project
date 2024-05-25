@@ -3,7 +3,7 @@ from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.streaming import StreamingQuery
 import pyspark.sql.functions as F
 
-CASSANDRA_TABLES_CONFIG ={
+CASSANDRA_TABLES ={
   "domain_pages": {
     "columns": ["domain", "page_id"],
   },
@@ -56,7 +56,7 @@ def append_to_cassandra_table(df: DataFrame, keyspace: str, table: str):
             
 def write_all_to_cassandra(df: DataFrame, df_id:DataFrame, keyspace: str='wiki'):
     """ Write data to all tables in the keyspace."""
-    for table, config in CASSANDRA_TABLES_CONFIG.items():
+    for table, config in CASSANDRA_TABLES.items():
         batch_df = df.select(config["columns"])
         batch_df = batch_df.filter(batch_df.columns[0] + " IS NOT NULL")
         append_to_cassandra_table(batch_df, keyspace, table)
@@ -121,20 +121,27 @@ def main(args: argparse.Namespace):
     write_query.awaitTermination()
     
 if __name__ == "__main__":
+    import os    
     argparser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Read messages from Kafka topic and write to Cassandra.')
     argparser.add_argument('--bootstrap-servers', type=str,
-                        default="kafka:9092", help='Kafka bootstrap servers')
-    argparser.add_argument('--read_topic', type=str, default="input",
-                        help='Kafka topic name to read messages from')
+                            default=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092"),
+                            help='Kafka bootstrap servers')
+    argparser.add_argument('--read_topic', type=str, default=os.getenv("KAFKA_TOPIC", "input"),
+                            help='Kafka topic name to read messages from')
     argparser.add_argument("--master", type=str,
-                           default="spark://spark-master-server:7077", help="Spark master URL")
-    argparser.add_argument("--app_name", type=str,
-                            default="Kafka-Spark-Cassandra", help="Name of the Spark application")
-    argparser.add_argument("--log_level", type=str, default="WARN", choices=["WARN", "INFO", "DEBUG"],
-                           help="Log level for the Spark context")
-    argparser.add_argument("--cassandra_host", type=str, default="cassandra", help="Cassandra host")
-    argparser.add_argument("--cassandra_port", type=str, default="9042", help="Cassandra port")
-    argparser.add_argument("--keyspace", type=str, default="wiki", help="Cassandra keyspace")
+                            default=os.getenv("SPARK_MASTER", "spark://spark-master-server:7077"),
+                            help="Spark master URL")
+    argparser.add_argument("--app_name", type=str, default="Kafka-Spark-Cassandra", 
+                            help="Name of the Spark application")
+    argparser.add_argument("--log_level", type=str, choices=["WARN", "INFO", "DEBUG"],
+                            help="Log level for the Spark context", default="WARN")
+    argparser.add_argument("--cassandra_host", type=str, 
+                            default=os.getenv("CASSANDRA_HOST", "cassandra"),
+                            help="Cassandra host")
+    argparser.add_argument("--cassandra_port", type=str, default=os.getenv("CASSANDRA_PORT", "9042"),
+                            help="Cassandra port")
+    argparser.add_argument("--keyspace", type=str, default=os.getenv("CASSANDRA_KEYSPACE", "wiki"),
+                           help="Cassandra keyspace")
     args = argparser.parse_args()
     main(args)

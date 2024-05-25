@@ -6,9 +6,10 @@ mongo_client = pymongo.MongoClient('mongodb://localhost:27017')
 db = mongo_client['wikiData']
 
 def process_data_to_mongo():
-    domain_counts = fetch_domain_page_counts()
-    bot_stats = fetch_bot_creation_stats()
-    top_users = fetch_top_users()
+    cassandra = AdHocCassandraService()
+    domain_counts = cassandra.fetch_domain_page_counts()
+    bot_stats = cassandra.fetch_bot_creation_stats()
+    top_users = cassandra.fetch_top_users()
 
     # Assuming these are dictionaries or lists as needed
     db.domain_stats.insert_one({"data": domain_counts})

@@ -1,3 +1,4 @@
+#!/bin/bash
 
 command=$1
 
@@ -15,4 +16,4 @@ docker run --rm \
         -it $app_name \
         $command
     
-echo "Producer app container exited"
+echo "$app_name container exited"

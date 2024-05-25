@@ -16,6 +16,7 @@ services:
       - ZOOKEEPER_CLIENT_PORT=2181
     networks:
       - wiki-streaming-network
+
   kafka:
     image: bitnami/kafka:latest
     container_name: kafka-server
@@ -51,6 +52,11 @@ services:
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
+    healthcheck:
+        test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+        interval: 5s
+        timeout: 3s
+        retries: 3
     ports:
       - '8080:8080'
     networks:
@@ -69,11 +75,9 @@ services:
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
-      - SPARK_ZOS_MASTER_APP_ALWAYSSCHEDULEAPPS=true
+      - SPARK_ZOS_MASTER_APP_ALWAYSSCHEDULEAPPS=true  
     networks:
       - wiki-streaming-network
-
-
 
   cassandra:
     image: bitnami/cassandra:latest
@@ -92,6 +96,61 @@ services:
           timeout: 5s
     networks:
       - wiki-streaming-network
+
+
+  endpoint-reader:
+    image: endpoint-reader-app
+    container_name: endpoint-reader-server
+    build:
+      context: ./endpoint-reader-app
+    environment:
+      - KAFKA_TOPIC=input
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    volumes:
+      - ./endpoint-reader-app:/app
+    networks:
+      - wiki-streaming-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  cassandra-populating:
+    image: cassandra-populating-app
+    container_name: cassandra-populating-server
+    build:
+      context: ./cassandra-populating-app
+    volumes:
+      - ./cassandra-populating-app:/app
+    networks:
+      - wiki-streaming-network
+    depends_on:
+      kafka:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
+      spark:
+        condition: service_healthy
+      spark-worker:
+        condition: service_started
+
+  rest-app:
+    image: rest-app
+    container_name: rest-app-server
+    build:
+      context: ./rest-app
+    ports:
+      - "4200:4200"
+    environment:
+      - CASSANDRA_HOST=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_KEYSPACE=wiki
+      - APP_PORT=4200
+      - APP_HOST=0.0.0.0
+    networks:
+      - wiki-streaming-network
+    depends_on:
+      cassandra:
+        condition: service_healthy
 
   mongodb:
     image: mongo:latest

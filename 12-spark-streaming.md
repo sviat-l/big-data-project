@@ -92,12 +92,12 @@ options:
 ---
 ### 3. Spark Programs
 
-[`spark-programs`](./spark-programs) - folder with the Spark programs
+[`cassandra-populating-app`](./cassandra-populating-app) - folder with the Spark programs
 
-- [`kafka-spark.py`](./spark-programs/kafka-spark.py) - python script to read data from one kafka topic, process it and write to another kafka
+- [`kafka-spark.py`](./cassandra-populating-app/kafka-spark.py) - python script to read data from one kafka topic, process it and write to another kafka
 
 ```bash
-I have no name!@46cee4484884:/opt/bitnami/spark$ spark-submit /opt/app/kafka-s
+I have no name!@46cee4484884:/opt/bitnami/spark$ spark-submit /app/kafka-s
 park.py --help
 usage: kafka-spark.py [-h] [--bootstrap-servers BOOTSTRAP_SERVERS]
                       [--read_topic READ_TOPIC] [--write_topic WRITE_TOPIC]
@@ -131,10 +131,10 @@ optional arguments:
 24/05/17 20:26:22 INFO ShutdownHookManager: Deleting directory /tmp/spark-8c6490d4-07ae-4818-b3b7-77c8696424e6
 ```
 
-- [`spark-cassandra.py`](./spark-programs/spark-cassandra.py) - python script to read data from Kafka topic and write it to Cassandra
+- [`spark-cassandra.py`](./cassandra-populating-app/spark-cassandra.py) - python script to read data from Kafka topic and write it to Cassandra
 
 ```bash
-I have no name!@46cee4484884:/opt/bitnami/spark$ spark-submit /opt/app/kafka-cassandra.py --help
+I have no name!@46cee4484884:/opt/bitnami/spark$ spark-submit /app/kafka-cassandra.py --help
 usage: kafka-cassandra.py [-h] [--bootstrap-servers BOOTSTRAP_SERVERS]
                           [--read_topic READ_TOPIC] [--master MASTER]
                           [--app_name APP_NAME]

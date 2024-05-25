@@ -26,7 +26,7 @@ def produce_from_stream(endponint_path:str, kafka_producer:KafkaProducer, topic:
                     finish_execution = True
                     break
         except Exception as e:
-            print("Error:", e)
+            print(f"Error: e")
             print("Trying to reconnect...")
     return num_posted_messages
 
@@ -41,10 +41,9 @@ def main(args:argparse.Namespace):
     print("Starting Kafka producer main...")
     kafka_producer = KafkaProducer(bootstrap_servers=bootstrap_servers)
     print("Producer connected:", kafka_producer.bootstrap_connected(), 'to', bootstrap_servers)
-    
     print("Reading stream messages from {} ...".format(endponint_path))
     num_posted_messages = produce_from_stream(endponint_path, kafka_producer, topic, log_every, post_limit)
-    
+
     kafka_producer.flush()
     kafka_producer.close()
     print("Kafka producer closed.")
@@ -53,13 +52,16 @@ def main(args:argparse.Namespace):
     return
 
 if __name__ == "__main__":
+    import os
     argparser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                         description="Read messages from the stream and write to Kafka topic")
     argparser.add_argument("--endponint_path", type=str, default="https://stream.wikimedia.org/v2/stream/page-create",
-                           help="Endpoint path to get the stream of the wiki pages")
-    argparser.add_argument("--bootstrap_servers", type=str, default="kafka:9092", help="Kafka server address")
-    argparser.add_argument("--topic", type=str, default="input", help="Kafka topic name to write to")
-    argparser.add_argument("--log_every", type=int, default=100, help="Log every N messages posted")
+                                help="Endpoint path to get the stream of the wiki pages")
+    argparser.add_argument("--bootstrap_servers", type=str, default=os.getenv("KAFKA_BOOTSTRAP_SERVERS"),
+                                help="Kafka server address")
+    argparser.add_argument("--topic", type=str, default=os.getenv("KAFKA_TOPIC"),
+                                help="Kafka topic name to write to")
+    argparser.add_argument("--log_every", type=int, default=1000, help="Log every N messages posted")
     argparser.add_argument("--post_limit", type=int, default=-1, help="Limit the number of messages to post (-1 to post all)")
     args = argparser.parse_args()
     main(args)
