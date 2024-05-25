@@ -51,24 +51,75 @@ class AdHocCassandraService:
         results = self.cassandra.execute(querry).all()
         return [{"user_id": row.user_id, "user_name": row.user_text, "number_of_pages": row.count} for row in results]
 
-
     def fetch_domain_page_counts(self):
-        query = "SELECT domain, COUNT(*) AS count FROM {keyspace}.pages GROUP BY domain"
-        rows = self.cassandra.execute(query)
-        return {row.domain: row.count for row in rows}
+        current_time = datetime.utcnow()
+        from_time = current_time - timedelta(hours=7)
+        to_time = current_time - timedelta(hours=1)
+        query = """
+        SELECT domain, created_at, COUNT(*) AS count
+        FROM {keyspace}.pages_by_date
+        WHERE created_at >= %s AND created_at < %s
+        GROUP BY domain, created_at;
+        """
+        rows = self.cassandra.execute(query, [from_time.strftime("%Y-%m-%dT%H:00"), to_time.strftime("%Y-%m-%dT%H:00")])
+        data = {}
+    
+        for row in rows:
+            hour = row.created_at.strftime("%H:00")
+            if hour not in data:
+                data[hour] = []
+            data[hour].append({row.domain: row.count})
+    
+        result = []
+    
+        for hour in sorted(data.keys()):
+            if hour == sorted(data.keys())[-1]:
+                continue
+            next_hour = (datetime.strptime(hour, "%H:00") + timedelta(hours=1)).strftime("%H:00")
+            result.append({"time_start": hour, "time_end": next_hour, "statistics": data[hour]})
+    
+        return result
 
     def fetch_bot_creation_stats(self):
-        query = "SELECT domain, COUNT(*) AS count FROM {keyspace}.domain_stats WHERE user_is_bot = True ALLOW FILTERING"
-        rows = self.cassandra.execute(query)
-        return {row.domain: row.count for row in rows}
+        current_time = datetime.utcnow()
+        from_time = current_time - timedelta(hours=7)
+        to_time = current_time - timedelta(hours=1)
+        query = """
+        SELECT domain, COUNT(*) AS count
+        FROM {keyspace}.domain_stats
+        WHERE created_at >= %s AND created_at < %s AND user_is_bot = True
+        GROUP BY domain;
+        """
+        rows = self.cassandra.execute(query, [from_time.strftime("%Y-%m-%dT%H:00"), to_time.strftime("%Y-%m-%dT%H:00")])
+        return {
+            "time_start": from_time,
+            "time_end": to_time,
+            "statistics": [{"domain": row.domain, "created_by_bots": row.count} for row in rows]
+        }
 
     def fetch_top_users(self):
+        current_time = datetime.utcnow()
+        from_time = current_time - timedelta(hours=7)
+        to_time = current_time - timedelta(hours=1)
         query = """
-        SELECT user_id, COUNT(*) AS count, COLLECT_SET(page_title) AS page_titles
-        FROM {keyspace}.user_pages
+        SELECT user_id, user_text, created_at, COUNT(*) AS count, COLLECT_SET(page_title) AS page_titles
+        FROM {keyspace}.pages_by_date
+        WHERE created_at >= %s AND created_at < %s
         GROUP BY user_id
         ORDER BY count DESC
         LIMIT 20;
         """
-        rows = self.cassandra.execute(query)
-        return [{"user_id": row.user_id, "number_of_pages": row.count, "page_titles": list(row.page_titles)} for row in rows]
+        rows = self.cassandra.execute(query, [from_time.strftime("%Y-%m-%dT%H:00"), to_time.strftime("%Y-%m-%dT%H:00")])
+        return {
+            "time_start": from_time,
+            "time_end": to_time,
+            "statistics":
+            [{
+                "user_name": row.user_text,
+                "user_id": row.user_id,
+                "start_time": from_time.strftime("%Y-%m-%d %H:00"),
+                "end_time": to_time.strftime("%Y-%m-%d %H:00"),
+                "page_titles": list(row.page_titles),
+                "number_of_pages": row.count
+            } for row in rows]
+        }
