@@ -64,9 +64,7 @@ class AdHocCassandraService:
         WHERE created_at >= '{from_time.strftime("%Y-%m-%dT%H:00")}' AND created_at < '{to_time.strftime("%Y-%m-%dT%H:00")}' \
         GROUP BY domain ALLOW FILTERING;
         """
-        print("#@$", query)
         rows = self.cassandra.execute(query)
-        print("124", rows)
         data = {}
     
         for row in rows:
@@ -92,15 +90,13 @@ class AdHocCassandraService:
         query = f"""
         SELECT domain, COUNT(*) AS count \
         FROM {self.keyspace}.domain_stats \
-        WHERE created_at >= '{2010}' AND created_at < '{2020}' AND user_is_bot = True \
+        WHERE created_at >= '{from_time.strftime("%Y-%m-%dT%H:00")}' AND created_at < '{to_time.strftime("%Y-%m-%dT%H:00")}' AND user_is_bot = True \
         GROUP BY domain; \
         """
-        print(query)
-        # rows = self.cassandra.execute(query, [from_time.strftime("%Y-%m-%dT%H:00"), to_time.strftime("%Y-%m-%dT%H:00")])
         rows = self.cassandra.execute(query)
         return {
-            "time_start": from_time,
-            "time_end": to_time,
+            "time_start": from_time.strftime("%Y-%m-%dT%H:00"),
+            "time_end": to_time.strftime("%Y-%m-%dT%H:00"),
             "statistics": [{"domain": row.domain, "created_by_bots": row.count} for row in rows]
         }
 
@@ -113,9 +109,7 @@ class AdHocCassandraService:
         WHERE created_at >= '{from_time.strftime("%Y-%m-%dT%H:00")}' AND created_at < '{to_time.strftime("%Y-%m-%dT%H:00")}'
         GROUP BY user_id ALLOW FILTERING ;
         """
-        print(query)
         rows = self.cassandra.execute(query).all()
-        print(rows)
         users = {}
         for row in rows:
             user = row.user_id
