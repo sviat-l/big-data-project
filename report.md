@@ -29,13 +29,17 @@ We have chosen MongoDB as an additional database to store precomputed data for f
 - kafka/spark:
 We have chosen Kafka and Spark for stream processing because they are designed to handle large amounts of data in real-time.
 - **Endpoint-reader**:
-This service is responsible for continuously reading the live stream of page creations from the Wikipedia website and publishing these messages to a Kafka topic. 
+  - Tools: `KafkaProducer`, `requests`
+  - Description: This service is responsible for continuously reading the live stream of page creations from the Wikipedia website and publishing these messages to a Kafka topic. Firstly, it sends a request to the Wikipedia API to get the latest page creations. Then, it sends each page creation as a message to the Kafka topic. 
 - **cassandra-populating**:
-This service is responsible for consuming messages from the Kafka topic, preprocessing the data with a spark streaming job, and storing the data in the Cassandra database.
+  - Tools: `spark`, `spark.streaming`, `cassandra-driver`, `kafka`
+  - Description: This service is responsible for consuming messages from the Kafka topic, preprocessing the data with a spark streaming job, and storing the data in the Cassandra database. Firstly, we create the Spark session, next we read messages from Kafka topic as a stream, we process the input data from the stream and return in the format to write to Cassandra.
 - **batch-processing**
-This service is responsible for batch processing the data in the Cassandra database and storing the precomputed data in the MongoDB database.
-- rest app using fastapi
-This service is responsible for serving the data via REST API.
+  - Tools: `cassandra-driver`, `pymongo`
+  - Description: This service is responsible for batch processing the data in the Cassandra database and storing the precomputed data in the MongoDB database. Firstly, we connect to the Cassandra database and read the data for batch processing. Next, we process the data and store the precomputed data in the MongoDB database. It allows us to retrieve the data faster and relieve the primary database from heavy queries.
+- REST app 
+  - Tools: `fastapi`, `cassandra-driver`, `pymongo`
+  This service is responsible for serving the data via REST API. It connects to the Cassandra and MongoDB databases to retrieve the data and return it to the client. We have implemented several endpoints to provide information about pages, users, and domains. We have also implemented endpoints to provide precomputed data for faster access.
 
 ## Data Models
 ### Cassandra tables
