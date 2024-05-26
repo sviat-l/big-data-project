@@ -22,13 +22,20 @@ A diagram of the project's architecture. DataFlow
 read, preprocess, store, precalulate, serve
 
 ### Services Description/Motivation
-- main db chosen
-- additional db chosen
+- Cassandra
+We have chosen cassandra as out primary database because it is designed to handle heavy write workloads. 
+- MongoDB
+We have chosen MongoDB as an additional database to store precomputed data for faster access.
 - kafka/spark
-- **Endpoint-reader**: 
+We have chosen Kafka and Spark for stream processing because they are designed to handle large amounts of data in real-time.
+- **Endpoint-reader**:
+This service is responsible for continuously reading the live stream of page creations from the Wikipedia website and publishing these messages to a Kafka topic. 
 - **cassandra-populating**:
+This service is responsible for consuming messages from the Kafka topic and storing them in the Cassandra database.
 - **batch-processing**
-- rest app
+This service is responsible for batch processing the data in the Cassandra database and storing the precomputed data in the MongoDB database.
+- rest app using fastapi
+This service is responsible for serving the data via REST API.
 
 ## Data Models
 ### Cassandra tables
@@ -164,10 +171,14 @@ This document is used to store information about the most productive users withi
 1. `GET /domains/all` - returning information about all domains with created pages
 - endpoint `GET /domains/all` + description or fastapi docs screenshot
 - return schema, description or fastapi docs screenshot
-2. ...
-
+2. `GET /users/{user_id}/pages` - returning information about pages created by a specific user
+3. `GET /domains/{domain_id}/pages` - returning information about all pages created in a specific domain
+4. `GET /pages/{page_id}` - returning information about a specific page
+5. `GET /pages-by_users/?from={from}&to={to}` - returning information about pages created by users within a specific time range
 ### Pre-calculated
-...
+1. `GET /domains/stats` - returning statistics about the number of pages created in each domain within a last 6 hours
+2. `GET /domains/stats/by_bots` - returning statistics about the number of pages created by bots in each domain within a last 6 hours
+3. `GET /users/most-productive` - returning information about users with most created pages within a last 6 hours.
 
 ## Results
 ### Ad-hoc
