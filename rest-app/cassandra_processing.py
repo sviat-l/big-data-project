@@ -35,6 +35,8 @@ class CassandraService:
     def find_page_info(self, page_id):
         query = f"SELECT * FROM {self.keyspace}.pages WHERE page_id = {page_id};"
         result = self.cassandra.execute(query).one()
+        if not result or result is None:
+            return None
         return {"page_id": result.page_id, "page_title": result.page_title, "domain": result.domain}
 
     def find_domain_pages(self, domain):
@@ -51,9 +53,7 @@ class CassandraService:
             FROM {self.keyspace}.pages_by_date
             WHERE created_at >= '{from_dt}' AND created_at <= '{to_dt}'
             GROUP BY user_id ALLOW FILTERING;"""
-        print(querry)
         results = self.cassandra.execute(querry).all()
-        print(results)
         return [{"user_id": row.user_id, "user_name": row.user_text, "number_of_pages": row.count} for row in results]
 
     def fetch_domain_page_counts(self):
@@ -80,8 +80,6 @@ class CassandraService:
                 hourly_results[hour]["time_end"] = next_hour
                 hourly_results[hour]["statistics"] = []
             hourly_results[hour]["statistics"].append({"domain": row.domain, "created_pages": row.count})    
-            
-        print(hourly_results)
         return {"data": list(hourly_results.values())}
 
     def fetch_bot_creation_stats(self):

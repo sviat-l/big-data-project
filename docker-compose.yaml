@@ -6,6 +6,7 @@ networks:
     driver: bridge
 
 services:
+
   zookeeper:
     image: bitnami/zookeeper:latest
     container_name: zookeeper
@@ -129,7 +130,7 @@ services:
       cassandra:
         condition: service_healthy
       spark:
-        condition: service_healthy
+        condition: service_started
       spark-worker:
         condition: service_started
 
@@ -181,7 +182,6 @@ services:
       - MONGO_HOST=mongodb
       - MONGO_PORT=27017
       - MONGO_DB=wikiData
-
     volumes:
       - ./rest-app:/app/db
       - ./batch-processing-app:/app
@@ -192,7 +192,6 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
-
 
 volumes:
   mongodb-data:
