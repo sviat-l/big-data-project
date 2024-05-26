@@ -25,9 +25,13 @@ A diagram of the project's architecture:
 
 ### Services Description/Motivation
 - Cassandra:
-We have chosen cassandra as out primary database because it is designed to handle heavy write workloads. 
+As there are many ad-hoc queries, we need to store the data in a way that allows us to retrieve it efficiently. We have chosen Cassandra because it is optimized for fast writes and can handle large amounts of data, and for each querry we designed a table schema that allows us to get the data in a single query very fastly and without loading the additional data. The tables are designed to store only the first prior information for each endpoint.
+
 - MongoDB:
-We have chosen MongoDB as an additional database to store precomputed data for faster access.
+As we have to store precomputed data for faster access, we have chosen MongoDB because it is optimized for fast reads and can handle JSON-like data. Also as there data will be write only one time, we tried to use the previous tables from cassandra, ad use not the best optimazed queries, as the recomption is only done one time per hour, and just not to make cassandra overloaded.
+
+The other reason to choose MongoDB is that in that way we can lover read load on Cassandra as all the precomputed requests will be stored in MongoDB.
+
 - kafka/spark:
 As data is coming in real-time in streaming process, we have chosen Kafka topic to store the data, and transmit it to the spark streaming job, to make it available for batch processing, in asynchronous way.
 We have chosen Kafka and Spark for stream processing because they are designed to handle large amounts of data in real-time.
@@ -39,7 +43,7 @@ We have chosen Kafka and Spark for stream processing because they are designed t
   - Description: This service is responsible for consuming messages from the Kafka topic, preprocessing the data with a spark streaming job, and storing the data in the Cassandra database. Firstly, we create the Spark session, next we read messages from Kafka topic as a stream, we process the input data from the stream and return in the format to write to Cassandra.
 - **batch-processing**
   - Tools: `cassandra-driver`, `pymongo`
-  - Description: This service is responsible for batch processing the data in the Cassandra database and storing the precomputed data in the MongoDB database. Firstly, we connect to the Cassandra database and read the data for batch processing. Next, we process the data and store the precomputed data in the MongoDB database. It allows us to retrieve the data faster and relieve the primary database from heavy queries.
+  - Description: This service is responsible for batch processing the data in the Cassandra database and storing the precomputed data in the MongoDB database. Firstly, we connect to the Cassandra database and read the data for batch processing. Next, we process the data and store the precomputed data in the MongoDB database. It allows us to retrieve the data faster and relieve the primary database from heavy queries. The service updated data in MongoDB only when the new hour is coming.
 - **REST app** 
   - Tools: `fastapi`, `cassandra-driver`, `pymongo`
   - Description: This service is responsible for serving the data via REST API. It connects to the Cassandra and MongoDB databases to retrieve the data and return it to the client. We have implemented several endpoints to provide information about pages, users, and domains. We have also implemented endpoints to provide precomputed data for faster access.
