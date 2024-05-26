@@ -25,12 +25,9 @@ def streaming_console_output(df: DataFrame) -> StreamingQuery:
             .outputMode("append") \
             .start()
             
-def write_to_cassandra(df: DataFrame, keyspace: str, table: str) -> StreamingQuery:
-    """Write messages to Cassandra table as a stream."""
-    return df.writeStream \
-            .foreachBatch(lambda batch_df, batch_id: 
-                batch_df.write \
-                    .format("org.apache.spark.sql.cassandra") \
-                    .options(table=table,keyspace=keyspace
-                    ).mode("append").save()
-            ).start()
+def append_to_cassandra_table(df: DataFrame, keyspace: str, table: str):
+    """ Write data to a Cassandra table."""
+    df.write \
+        .format("org.apache.spark.sql.cassandra") \
+        .options(table=table,keyspace=keyspace
+        ).mode("append").save()

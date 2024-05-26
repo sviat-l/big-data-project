@@ -30,7 +30,7 @@ class PagesByUsersModel(BaseModel):
 
 class Statistic(BaseModel):
     domain: str
-    count: int
+    created_pages: int
 
 class HourlyDomainStatsModel(BaseModel):
     time_start: str

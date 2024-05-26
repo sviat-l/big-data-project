@@ -2,24 +2,7 @@ import argparse
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.streaming import StreamingQuery
 import pyspark.sql.functions as F
-
-CASSANDRA_TABLES ={
-  "domain_pages": {
-    "columns": ["domain", "page_id"],
-  },
-  "user_pages": {
-    "columns": ["user_id", "page_id", "page_title"],
-  },
-  "pages": {
-    "columns": ["page_id", "page_title", "domain"],
-  },
-  "pages_by_date": {
-    "columns": ["created_at", "page_id", "page_title", "user_id", "user_text"],
-  },
-  "domain_stats": {
-    "columns": ["domain", "page_id", "created_at", "user_is_bot"],
-  }
-}
+from config import CASSANDRA_TABLES
 
 def create_spark_session(app_name: str, master: str, log_level: str, 
                          cassandra_host: str="cassandra", cassandra_port: str="9042"
@@ -94,7 +77,7 @@ def preprocess_data(input_df: DataFrame) -> DataFrame:
         F.col("page_title"),
         F.col("page_id"),
     )
-    parsed_df = parsed_df.filter(F.col("user_id").isNotNull)
+    parsed_df = parsed_df.dropna()
     return parsed_df
 
 

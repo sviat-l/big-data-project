@@ -2,20 +2,19 @@ import cassandra_client
 import logging
 import os
 from datetime import datetime, timedelta
-from collections import Counter
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='|%(asctime)s| - |%(name)s| - |%(levelname)s| - |%(message)s|')
 logger = logging.getLogger(__name__)
 
-class AdHocCassandraService:
+class CassandraService:
     def __init__(self, host=None, port=None, keyspace=None):
         self.host = os.getenv("CASSANDRA_HOST", "cassandra") if host is None else host
         self.port = os.getenv("CASSANDRA_PORT", 9042) if port is None else port
         self.keyspace = os.getenv("CASSANDRA_KEYSPACE", "wiki") if keyspace is None else keyspace
         self.cassandra = None
         self.connect_to_db()
-        logger.info(f"AdHocCassandraService initialized with host: {self.host}, port: {self.port}, keyspace: {self.keyspace}")
+        logger.info(f"CassandraService initialized with host: {self.host}, port: {self.port}, keyspace: {self.keyspace}")
 
     def connect_to_db(self):
         self.cassandra = cassandra_client.CassandraClient(
@@ -46,68 +45,63 @@ class AdHocCassandraService:
         return {"domain": domain, "number_of_pages": result.count}
 
     def find_pages_by_users_in_timerange(self, from_dt, to_dt):
-        querry = f"SELECT user_id, user_text, COUNT(page_id) as count \
-            FROM {self.keyspace}.pages_by_date \
-            WHERE created_at >= '{from_dt}' AND created_at <= '{to_dt}' \
-            GROUP BY created_at ALLOW FILTERING"
+        querry = f""" SELECT user_id, user_text, COUNT(page_id) as count
+            FROM {self.keyspace}.pages_by_date
+            WHERE created_at >= '{from_dt}' AND created_at <= '{to_dt}'
+            GROUP BY created_at ALLOW FILTERING"""
         results = self.cassandra.execute(querry).all()
         return [{"user_id": row.user_id, "user_name": row.user_text, "number_of_pages": row.count} for row in results]
 
     def fetch_domain_page_counts(self):
-        return
         current_time = datetime.utcnow()
         from_time = current_time - timedelta(hours=7)
-        to_time = current_time - timedelta(hours=1)
+        to_time = current_time + timedelta(hours=1) # change to minus
+        from_time = from_time.strftime("%Y-%m-%dT%H:00")
+        to_time = to_time.strftime("%Y-%m-%dT%H:00")
         query = f"""
-        SELECT domain, created_at, COUNT(*) AS count \
+        SELECT domain, COUNT(*) AS count \
         FROM {self.keyspace}.domain_stats \
-        WHERE created_at >= '{from_time.strftime("%Y-%m-%dT%H:00")}' AND created_at < '{to_time.strftime("%Y-%m-%dT%H:00")}' \
+        WHERE created_at >= '{from_time}' AND created_at < '{to_time}' \
         GROUP BY domain ALLOW FILTERING;
         """
-        rows = self.cassandra.execute(query)
-        data = {}
-    
-        for row in rows:
-            hour = row.created_at.strftime("%H:00")
-            if hour not in data:
-                data[hour] = []
-            data[hour].append({row.domain: row.count})
-    
-        result = []
-    
-        for hour in sorted(data.keys()):
-            if hour == sorted(data.keys())[-1]:
-                continue
-            next_hour = (datetime.strptime(hour, "%H:00") + timedelta(hours=1)).strftime("%H:00")
-            result.append({"time_start": hour, "time_end": next_hour, "statistics": data[hour]})
-    
+        rows = self.cassandra.execute(query).all()
+        result = {
+            "time_start": from_time,
+            "time_end": to_time,
+            "statistics": [{"domain": row.domain, "created_pages": row.count} for row in rows]
+        }        
         return result
 
     def fetch_bot_creation_stats(self):
         current_time = datetime.utcnow()
         from_time = current_time - timedelta(hours=7)
         to_time = current_time - timedelta(hours=1)
+        from_time = from_time.strftime("%Y-%m-%dT%H:00")
+        to_time = to_time.strftime("%Y-%m-%dT%H:00")
         query = f"""
         SELECT domain, COUNT(*) AS count \
         FROM {self.keyspace}.domain_stats \
-        WHERE created_at >= '{from_time.strftime("%Y-%m-%dT%H:00")}' AND created_at < '{to_time.strftime("%Y-%m-%dT%H:00")}' AND user_is_bot = True \
-        GROUP BY domain; \
+        WHERE user_is_bot = True \
+        AND created_at >= '{from_time}' AND created_at < '{to_time}' \
+        GROUP BY domain ALLOW FILTERING;
         """
         rows = self.cassandra.execute(query)
         return {
-            "time_start": from_time.strftime("%Y-%m-%dT%H:00"),
-            "time_end": to_time.strftime("%Y-%m-%dT%H:00"),
+            "time_start": from_time,
+            "time_end": to_time,
             "statistics": [{"domain": row.domain, "created_by_bots": row.count} for row in rows]
         }
 
-    def fetch_top_users(self):
+    def fetch_top_users(self, limit=20):
         current_time = datetime.utcnow()
         from_time = current_time - timedelta(hours=7)
         to_time = current_time + timedelta(hours=1) # change to minus
+        from_time = from_time.strftime("%Y-%m-%dT%H:00")
+        to_time = to_time.strftime("%Y-%m-%dT%H:00")
         query = f"""
         SELECT * FROM {self.keyspace}.pages_by_date
-        WHERE created_at >= '{from_time.strftime("%Y-%m-%dT%H:00")}' AND created_at < '{to_time.strftime("%Y-%m-%dT%H:00")}'
-        GROUP BY user_id ALLOW FILTERING ;
+        WHERE created_at >= '{from_time}' AND created_at < '{to_time}'
+        ALLOW FILTERING ;
         """
         rows = self.cassandra.execute(query).all()
         users = {}
@@ -119,10 +113,9 @@ class AdHocCassandraService:
             users[user]["total_pages"] += 1
             users[user]["page_titles"].append(page)
             
-        top_20_users = sorted(list(users.values()), key=lambda x: x['total_pages'])[:20]
-        to_Write = {
-            "time_start": from_time.strftime("%Y-%m-%dT%H:00"),
-            "time_end": to_time.strftime("%Y-%m-%dT%H:00"),
-            "users": top_20_users
+        top_users = sorted(list(users.values()), key=lambda x: -x['total_pages'])[:limit]
+        return {
+            "time_start": from_time,
+            "time_end": to_time,
+            "users": top_users
         }
-        return to_Write

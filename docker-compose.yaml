@@ -153,6 +153,8 @@ services:
     depends_on:
       cassandra:
         condition: service_healthy
+      mongodb:
+        condition: service_healthy
 
   mongodb:
     image: mongo:latest
@@ -161,8 +163,36 @@ services:
       - "27017:27017"
     volumes:
       - mongodb-data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
     networks:
       - wiki-streaming-network
+
+  batch-processing:
+    image: batch-processing-app
+    container_name: batch-processing-server
+    build:
+      context: ./
+      dockerfile: ./batch-processing-app/Dockerfile
+    environment:
+      - CASSANDRA_HOST=cassandra
+      - CASSANDRA_PORT=9042
+      - CASSANDRA_KEYSPACE=wiki
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB=wikiData
+
+    volumes:
+      - ./rest-app:/app/db
+      - ./batch-processing-app:/app
+    networks:
+      - wiki-streaming-network
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
 
 volumes:
   mongodb-data:

@@ -1,9 +1,8 @@
-from cassandra_processing import *
+from cassandra_processing import CassandraService
 from mongo_processing import MongoDBClient
-import datetime
 
 def process_data_to_mongo():
-    cassandra = AdHocCassandraService()
+    cassandra = CassandraService()
     mongo_client = MongoDBClient()
     
     domain_counts = cassandra.fetch_domain_page_counts()

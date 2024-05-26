@@ -2,6 +2,10 @@ from kafka import KafkaProducer
 import requests
 import argparse
 import time
+import logging
+
+logging.basicConfig(level=logging.INFO, format='|%(asctime)s| - |%(name)s| - |%(levelname)s| - |%(message)s|')
+logger = logging.getLogger(__name__)
 
 def send_to_kafka(kafka_producer:KafkaProducer, topic:str, message: str) -> None:
     """ Send the messsage to the Kafka topic"""
@@ -14,20 +18,20 @@ def produce_from_stream(endponint_path:str, kafka_producer:KafkaProducer, topic:
     finish_execution = False
     while not finish_execution:
         response = requests.get(endponint_path, stream=True)
-        print("Connected to the stream from", endponint_path, "with status code:", response.status_code)
+        logger.info(f"Connected to the stream from {endponint_path} with status code: {response.status_code}")
         try:
             for line in response.iter_lines():
                 line = line.decode('utf-8')
                 send_to_kafka(kafka_producer, topic, line)
                 num_posted_messages += 1
                 if log_every and num_posted_messages % log_every == 0:
-                    print("Posted:", num_posted_messages, "messages to topic:", topic)
+                    logger.info(f"Posted {num_posted_messages} messages to Kafka")
                 if post_limit > 0 and num_posted_messages >= post_limit:
                     finish_execution = True
                     break
         except Exception as e:
-            print(f"Error: e")
-            print("Trying to reconnect...")
+            logger.error(f"Error: {str(e)}")
+            logger.info("Trying to reconnect to the stream...")
     return num_posted_messages
 
 def main(args:argparse.Namespace):
@@ -37,18 +41,18 @@ def main(args:argparse.Namespace):
     log_every = args.log_every
     post_limit = args.post_limit
     
-    start = time.time() 
-    print("Starting Kafka producer main...")
+    start = time.time()
+    logger.info("Starting the Kafka producer...")
     kafka_producer = KafkaProducer(bootstrap_servers=bootstrap_servers)
-    print("Producer connected:", kafka_producer.bootstrap_connected(), 'to', bootstrap_servers)
-    print("Reading stream messages from {} ...".format(endponint_path))
+    logger.info(f"Connected to Kafka producer with bootstrap servers: {bootstrap_servers}, {kafka_producer.bootstrap_connected()}")
+    logger.info(f"Reading stream messages from {endponint_path} ...")
     num_posted_messages = produce_from_stream(endponint_path, kafka_producer, topic, log_every, post_limit)
 
     kafka_producer.flush()
     kafka_producer.close()
-    print("Kafka producer closed.")
-    print("Time taken:", time.time()-start, "seconds")
-    print("Number of messages posted:", num_posted_messages)
+    logger.info("Kafka producer closed.")
+    logger.info("Time taken: %s seconds", time.time()-start)
+    logger.info("Number of messages posted: %s", num_posted_messages)
     return
 
 if __name__ == "__main__":
