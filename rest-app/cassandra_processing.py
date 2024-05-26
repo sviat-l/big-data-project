@@ -45,11 +45,15 @@ class CassandraService:
         return {"domain": domain, "number_of_pages": result.count}
 
     def find_pages_by_users_in_timerange(self, from_dt, to_dt):
+        from_dt = from_dt.strftime("%Y-%m-%dT%H:%M:%S")
+        to_dt = to_dt.strftime("%Y-%m-%dT%H:%M:%S")
         querry = f""" SELECT user_id, user_text, COUNT(page_id) as count
             FROM {self.keyspace}.pages_by_date
             WHERE created_at >= '{from_dt}' AND created_at <= '{to_dt}'
-            GROUP BY created_at ALLOW FILTERING"""
+            GROUP BY user_id ALLOW FILTERING;"""
+        print(querry)
         results = self.cassandra.execute(querry).all()
+        print(results)
         return [{"user_id": row.user_id, "user_name": row.user_text, "number_of_pages": row.count} for row in results]
 
     def fetch_domain_page_counts(self):
@@ -68,13 +72,16 @@ class CassandraService:
         hourly_results = {}
         for row in rows:
             hour = datetime.strptime(row.created_at, "%Y-%m-%dT%H:%M:%SZ")
-            next_hour = (hour + timedelta(hours=1))
+            next_hour = (hour + timedelta(hours=1)).strftime("%Y-%m-%dT%H:00")
+            hour = hour.strftime("%Y-%m-%dT%H:00")
             if hour not in hourly_results:
                 hourly_results[hour] = {}
-                hourly_results[hour]["time_start"] = hour.strftime("%Y-%m-%dT%H:00")
-                hourly_results[hour]["time_end"] = next_hour.strftime("%Y-%m-%dT%H:00")
+                hourly_results[hour]["time_start"] = hour
+                hourly_results[hour]["time_end"] = next_hour
                 hourly_results[hour]["statistics"] = []
             hourly_results[hour]["statistics"].append({"domain": row.domain, "created_pages": row.count})    
+            
+        print(hourly_results)
         return {"data": list(hourly_results.values())}
 
     def fetch_bot_creation_stats(self):

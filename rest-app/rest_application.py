@@ -3,7 +3,7 @@ from typing import List
 import cassandra_processing
 import rest_models
 import logging
-from datetime import date
+from datetime import date, datetime
 from mongo_processing import MongoDBClient
 
 # Initialize logging
@@ -50,8 +50,8 @@ def get_domain_pages(domain: str = Path(..., title="The domain")):
     return result
 
 @app.get("/pages/by/users/", response_model=List[rest_models.PagesByUsersModel])
-def get_pages_by_users(from_dt: date = Query(..., title="The starting date"), 
-                       to_dt: date = Query(..., title="The final date")):
+def get_pages_by_users(from_dt: datetime = Query(..., title="The starting date"), 
+                       to_dt: datetime = Query(..., title="The final date")):
     if from_dt > to_dt:
         raise HTTPException(status_code=400, detail=f"Starting from_date must be less than the Final to_date")
     logger.info(f"Getting pages by users", "from_date: ", from_dt, "to_date: ", to_dt)
