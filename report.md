@@ -39,7 +39,7 @@ We have chosen Kafka and Spark for stream processing because they are designed t
   - Description: This service is responsible for batch processing the data in the Cassandra database and storing the precomputed data in the MongoDB database. Firstly, we connect to the Cassandra database and read the data for batch processing. Next, we process the data and store the precomputed data in the MongoDB database. It allows us to retrieve the data faster and relieve the primary database from heavy queries.
 - REST app 
   - Tools: `fastapi`, `cassandra-driver`, `pymongo`
-  This service is responsible for serving the data via REST API. It connects to the Cassandra and MongoDB databases to retrieve the data and return it to the client. We have implemented several endpoints to provide information about pages, users, and domains. We have also implemented endpoints to provide precomputed data for faster access.
+  - Description: This service is responsible for serving the data via REST API. It connects to the Cassandra and MongoDB databases to retrieve the data and return it to the client. We have implemented several endpoints to provide information about pages, users, and domains. We have also implemented endpoints to provide precomputed data for faster access.
 
 ## Data Models
 ### Cassandra tables
