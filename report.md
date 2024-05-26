@@ -22,11 +22,11 @@ A diagram of the project's architecture. DataFlow
 read, preprocess, store, precalulate, serve
 
 ### Services Description/Motivation
-- Cassandra
+- Cassandra:
 We have chosen cassandra as out primary database because it is designed to handle heavy write workloads. 
-- MongoDB
+- MongoDB:
 We have chosen MongoDB as an additional database to store precomputed data for faster access.
-- kafka/spark
+- kafka/spark:
 We have chosen Kafka and Spark for stream processing because they are designed to handle large amounts of data in real-time.
 - **Endpoint-reader**:
 This service is responsible for continuously reading the live stream of page creations from the Wikipedia website and publishing these messages to a Kafka topic. 
