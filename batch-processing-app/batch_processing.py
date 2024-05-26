@@ -1,5 +1,5 @@
-from db.cassandra_processing import CassandraService
-from db.mongo_processing import MongoDBClient
+from cassandra_processing import CassandraService
+from mongo_processing import MongoDBClient
 import datetime
 import time
 import logging
@@ -31,7 +31,7 @@ def wait_loop():
         if current_hour == previous_hour:
             logger.info("Waiting for the next hour to process data,"\
                         f" current  {current_hour}, previous hour: {previous_hour}")
-            time.sleep(10)
+            time.sleep(0)
             continue
         logger.info("New hour, processing data for precomputed reports")
         process_data_to_mongo()

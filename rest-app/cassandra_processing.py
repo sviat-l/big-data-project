@@ -55,22 +55,27 @@ class CassandraService:
     def fetch_domain_page_counts(self):
         current_time = datetime.utcnow()
         from_time = current_time - timedelta(hours=7)
-        to_time = current_time + timedelta(hours=1) # change to minus
+        to_time = current_time - timedelta(hours=1)
         from_time = from_time.strftime("%Y-%m-%dT%H:00")
         to_time = to_time.strftime("%Y-%m-%dT%H:00")
         query = f"""
-        SELECT domain, COUNT(*) AS count \
+        SELECT domain, created_at, COUNT(*) AS count \
         FROM {self.keyspace}.domain_stats \
         WHERE created_at >= '{from_time}' AND created_at < '{to_time}' \
         GROUP BY domain ALLOW FILTERING;
         """
         rows = self.cassandra.execute(query).all()
-        result = {
-            "time_start": from_time,
-            "time_end": to_time,
-            "statistics": [{"domain": row.domain, "created_pages": row.count} for row in rows]
-        }        
-        return result
+        hourly_results = {}
+        for row in rows:
+            hour = datetime.strptime(row.created_at, "%Y-%m-%dT%H:%M:%SZ")
+            next_hour = (hour + timedelta(hours=1))
+            if hour not in hourly_results:
+                hourly_results[hour] = {}
+                hourly_results[hour]["time_start"] = hour.strftime("%Y-%m-%dT%H:00")
+                hourly_results[hour]["time_end"] = next_hour.strftime("%Y-%m-%dT%H:00")
+                hourly_results[hour]["statistics"] = []
+            hourly_results[hour]["statistics"].append({"domain": row.domain, "created_pages": row.count})    
+        return {"data": list(hourly_results.values())}
 
     def fetch_bot_creation_stats(self):
         current_time = datetime.utcnow()
@@ -95,7 +100,7 @@ class CassandraService:
     def fetch_top_users(self, limit=20):
         current_time = datetime.utcnow()
         from_time = current_time - timedelta(hours=7)
-        to_time = current_time + timedelta(hours=1) # change to minus
+        to_time = current_time - timedelta(hours=1)
         from_time = from_time.strftime("%Y-%m-%dT%H:00")
         to_time = to_time.strftime("%Y-%m-%dT%H:00")
         query = f"""

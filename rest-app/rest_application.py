@@ -16,12 +16,6 @@ CassandraService : cassandra_processing.CassandraService = None
 app = FastAPI(title="Wikipedia Created Pages API", description="API to get information about Wikipedia created pages", version="1.0.0")
 CassandraService = cassandra_processing.CassandraService()
 mongo_client = MongoDBClient()
-
-@app.post("/reconect-to-cassandra/")
-def reconnect_to_cassandra():
-    logger.info(f"Reconnecting to Cassandra")
-    CassandraService.connect_to_db()
-    return {"message": "Reconnected to Cassandra"}
     
 @app.get("/domains/all/", response_model=rest_models.DomainModel)
 def get_all_domains():
@@ -55,7 +49,7 @@ def get_domain_pages(domain: str = Path(..., title="The domain")):
         raise HTTPException(status_code=404, detail=f"Pages not found for domain: {domain}")
     return result
 
-@app.get("/pages-by-users/", response_model=List[rest_models.PagesByUsersModel])
+@app.get("/pages/by/users/", response_model=List[rest_models.PagesByUsersModel])
 def get_pages_by_users(from_dt: date = Query(..., title="The starting date"), 
                        to_dt: date = Query(..., title="The final date")):
     if from_dt > to_dt:

@@ -23,6 +23,9 @@ class MongoDBClient:
         self.db.domain_stats.create_index([("time_start", 1)])
         self.db.bot_creation_stats.create_index([("time_start", 1)])
         self.db.most_productive.create_index([("time_start", 1)])
+        self.db.domain_stats.delete_many({})
+        self.db.bot_creation_stats.delete_many({})
+        self.db.most_productive.delete_many({})
 
     def insert_domain_stats(self, domain_counts):
         try:
@@ -51,6 +54,7 @@ class MongoDBClient:
     def get_domain_stats(self) -> List[Dict]:
         try:
             data = list(self.db.domain_stats.find())
+            data = data[0]['data']
             return data
         except Exception as e:
             logging.error(f"Failed to fetch hourly domain stats: {str(e)}")
