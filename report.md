@@ -17,9 +17,9 @@ docker compose down
 
 ## Diagram
 
-A diagram of the project's architecture. DataFlow
-4.5 steps:
-read, preprocess, store, precalulate, serve
+A diagram of the project's architecture:
+
+![diagram.png](results/image/diagram.png)
 
 ### Services Description/Motivation
 - Cassandra:
@@ -31,7 +31,7 @@ We have chosen Kafka and Spark for stream processing because they are designed t
 - **Endpoint-reader**:
 This service is responsible for continuously reading the live stream of page creations from the Wikipedia website and publishing these messages to a Kafka topic. 
 - **cassandra-populating**:
-This service is responsible for consuming messages from the Kafka topic and storing them in the Cassandra database.
+This service is responsible for consuming messages from the Kafka topic, preprocessing the data with a spark streaming job, and storing the data in the Cassandra database.
 - **batch-processing**
 This service is responsible for batch processing the data in the Cassandra database and storing the precomputed data in the MongoDB database.
 - rest app using fastapi
