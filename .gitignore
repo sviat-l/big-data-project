@@ -1,2 +1,5 @@
 *__pycache__/
 # .idea/
+rest-app/__pycache__/cassandra_processing.cpython-310.pyc
+rest-app/__pycache__/rest_application.cpython-310.pyc
+rest-app/__pycache__/rest_models.cpython-310.pyc
